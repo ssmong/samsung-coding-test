@@ -1,0 +1,276 @@
+---
+trigger: 파이썬 기본 자료구조가 헷갈릴 때. 무엇을 언제 쓰는지 + 시간 복잡도 함정.
+related_problems: [3190, 1260, 2178]
+---
+
+# 파이썬 기본 자료구조 — 백준 관점
+
+## 한눈 요약: 언제 무엇을 쓰나
+
+| 필요 | 선택 | 핵심 이유 |
+|---|---|---|
+| 순서 있는 값들 (인덱스 접근) | `list` | 가장 범용 |
+| **스택** (한쪽 끝만) | `list` + `append`/`pop` | 추가 import 없음 |
+| **큐 / 양끝 큐** | `collections.deque` | `list.pop(0)`은 O(N) → 덱 필수 |
+| 좌표, 고정 길이 묶음 | `tuple` | 불변 + 해시 가능 → dict/set 키로 사용 |
+| **해시맵** (키 → 값) | `dict` | O(1) 조회/삽입/삭제 |
+| 개수 세기 | `collections.Counter` | dict보다 관용구가 짧음 |
+| **중복 없는 컬렉션 + O(1) 조회** | `set` | `x in list`는 O(N), `x in set`은 O(1) |
+| 우선순위 (가장 작은/큰 것 반복 추출) | `heapq` (min-heap) | 다익스트라, 스케줄링 |
+
+**절대 쓰지 말 것:** `queue.Queue` (멀티스레드용이라 단일스레드에선 deque보다 훨씬 느림)
+
+---
+
+## 1. list — 기본 배열 + 스택
+
+파이썬의 `list`는 사실 "동적 배열". 가장 많이 쓴다.
+
+```python
+arr = []
+arr = [0] * 5              # [0, 0, 0, 0, 0] — 초기화 관용구
+arr = [[0] * M for _ in range(N)]   # 2D 격자. 주의: [[0]*M]*N 은 버그!
+
+arr.append(x)              # 끝에 추가 — O(1)
+x = arr.pop()              # 끝에서 제거 — O(1)
+arr[i]                     # 인덱스 접근 — O(1)
+len(arr)                   # 길이 — O(1)
+```
+
+### 스택으로 쓰기
+
+한쪽 끝만 쓰면 스택. DFS 반복 버전, 괄호 짝 맞추기 등에 사용.
+
+```python
+stack = []
+stack.append(x)            # push
+top = stack.pop()          # pop
+if stack: ...              # 비었는지
+```
+
+### ⚠️ 느린 연산 (백준 TLE 주범)
+
+```python
+arr.pop(0)                 # O(N) — 절대 큐로 쓰지 말 것
+arr.insert(0, x)           # O(N)
+del arr[i]                 # O(N)
+x in arr                   # O(N) — list에서 `in` 검사 느림
+arr.remove(x)              # O(N)
+```
+
+**규칙:** list에서 앞쪽/중간을 건드리는 연산이 핫루프에 들어가면 의심하라.
+
+### 2D 격자 초기화 함정
+
+```python
+board = [[0] * M] * N      # ❌ 행들이 같은 객체를 공유! board[0][0]=1 하면 모든 행이 바뀜
+board = [[0] * M for _ in range(N)]  # ✅ 각 행이 독립
+```
+
+이거 한 번 당하면 평생 안 잊는다. 격자 초기화는 항상 컴프리헨션으로.
+
+---
+
+## 2. tuple — 불변 묶음
+
+`list`와 비슷하지만 **수정 불가**. 대신 **해시 가능** → dict 키나 set 원소로 쓸 수 있다.
+
+```python
+p = (3, 5)                 # 좌표
+r, c = p                   # 언패킹
+visited = set()
+visited.add((3, 5))        # tuple이라 OK. list는 안 됨!
+```
+
+**언제 쓰나:** 좌표처럼 "고정 길이 + 바뀌지 않는 묶음"은 거의 항상 tuple. 뱀의 몸통 좌표(`(r, c)`)도 tuple로 저장.
+
+---
+
+## 3. dict — 해시맵
+
+키로 값을 찾는다. 모든 기본 연산이 평균 O(1).
+
+```python
+d = {}
+d['apple'] = 1
+d['apple']                 # 1
+'apple' in d               # O(1) 존재 확인
+d.get('banana', 0)         # 없으면 0 — KeyError 방지 관용구
+del d['apple']
+
+for k, v in d.items():     # 키-값 동시 순회
+    ...
+```
+
+### 카운팅 관용구 (자주 나옴)
+
+```python
+# 방법 A: get
+count = {}
+for x in arr:
+    count[x] = count.get(x, 0) + 1
+
+# 방법 B: Counter (더 짧음)
+from collections import Counter
+count = Counter(arr)       # {값: 개수}
+```
+
+### 3190 뱀에서의 활용
+
+"시간 → 회전 방향" 매핑을 dict로 저장하면 "지금 이 초에 회전하나?"를 O(1)에 확인.
+
+```python
+turns = {}
+for _ in range(L):
+    x, c = input().split()
+    turns[int(x)] = c
+# 사용
+if time in turns:
+    ...
+```
+
+---
+
+## 4. set — 중복 없는 집합
+
+`dict`와 같은 해시 기반. 값만 저장. O(1) 조회.
+
+```python
+s = set()
+s = {1, 2, 3}              # 빈 set은 set() — {} 은 빈 dict!
+s.add(5)
+s.discard(5)               # 없어도 에러 안 남 (remove는 에러 남)
+5 in s                     # O(1)
+len(s)
+```
+
+**언제 쓰나:** "이미 본 적 있는 좌표/값인가?"를 빠르게 확인할 때.
+
+```python
+# 사과 위치 저장 — 빠른 조회
+apples = set()
+for _ in range(K):
+    r, c = map(int, input().split())
+    apples.add((r, c))
+
+# 사용
+if (nr, nc) in apples:     # O(1)
+    apples.remove((nr, nc))
+```
+
+### 함정: 빈 set 만들기
+
+```python
+s = {}                     # ❌ 이건 빈 dict!
+s = set()                  # ✅
+```
+
+---
+
+## 5. deque — 양끝 큐 (`collections.deque`)
+
+양쪽 끝에서 넣고 빼기가 O(1). **BFS의 큐, 뱀 몸통 같은 양끝 연산의 필수 도구.**
+
+```python
+from collections import deque
+
+q = deque()
+q = deque([1, 2, 3])
+
+# 오른쪽 (꼬리)
+q.append(4)                # [1, 2, 3, 4]
+x = q.pop()                # x=4
+
+# 왼쪽 (머리)
+q.appendleft(0)            # [0, 1, 2, 3]
+x = q.popleft()            # x=0
+
+q[0], q[-1]                # 양끝 조회
+len(q), bool(q)
+```
+
+### BFS 관용구
+
+```python
+from collections import deque
+
+q = deque([start])
+visited[start] = True
+while q:
+    u = q.popleft()
+    for v in neighbors(u):
+        if not visited[v]:
+            visited[v] = True   # ← enqueue 시점에 표시 (popleft 시점 X)
+            q.append(v)
+```
+
+### 뱀 몸통 (3190) 관용구
+
+"머리 끝에 추가, 꼬리 끝에서 제거"가 한쪽→반대쪽 구조 그 자체.
+
+```python
+snake = deque()
+snake.append((1, 1))        # 시작 위치
+
+# 매 초:
+snake.append((nr, nc))      # 새 머리
+if not ate_apple:
+    tail = snake.popleft()  # 꼬리 제거
+```
+
+**규칙 하나 정해두기:** "오른쪽 끝 = 머리, 왼쪽 끝 = 꼬리" (또는 반대). 한 번 정하면 끝까지 지키기.
+
+### 함정
+
+- `q.pop(0)` **은 없다.** `popleft()`가 맞다.
+- 빈 덱에서 `pop`하면 `IndexError` → `while q:` 가드.
+- 중간 인덱스 접근 `q[k]`은 **O(N)**. 랜덤 액세스 많으면 list가 낫다.
+- `x in q`도 O(N). 조회가 잦으면 `set`이나 보드 마커를 병행.
+
+---
+
+## 6. heapq — 우선순위 큐
+
+"가장 작은 원소를 반복해서 꺼내고 싶다"는 상황에 쓴다. 다익스트라의 필수 도구. **min-heap만 있음** — max가 필요하면 값에 `-`를 붙여 넣는다.
+
+```python
+import heapq
+
+h = []
+heapq.heappush(h, 3)
+heapq.heappush(h, 1)
+heapq.heappush(h, 2)
+x = heapq.heappop(h)       # 1 (항상 가장 작은 값)
+
+# max-heap 흉내
+heapq.heappush(h, -value)
+x = -heapq.heappop(h)
+
+# 튜플 저장 시 첫 원소 기준으로 정렬
+heapq.heappush(h, (dist, node))
+```
+
+**언제 쓰나:** 다익스트라, K번째로 큰/작은 값, "우선순위 기반 이벤트 처리". 기본 구현으로는 A형 기출에서 자주 나오지는 않지만 알아두면 도움.
+
+---
+
+## 요약 카드
+
+시험장에서 10초 안에 결정할 수 있도록.
+
+```
+인덱스 접근만 → list
+스택 → list (append/pop)
+큐 / BFS → deque (popleft/append)
+양끝 연산 (뱀, 윈도우) → deque
+좌표·고정 묶음 → tuple
+키→값 매핑 → dict
+"본 적 있나?" O(1) 조회 → set
+"가장 작은 것" 반복 추출 → heapq
+```
+
+## 관련 개념
+
+- [01-grid-template.md](01-grid-template.md) — 격자 문제 기본 세팅에서 이 자료구조들이 어떻게 조합되는지
+- [02-bfs-dfs.md](02-bfs-dfs.md) — BFS/DFS에서 deque/list 사용 패턴
+- [00-input-parsing.md](00-input-parsing.md) — 입력을 이 자료구조들로 담는 관용구
