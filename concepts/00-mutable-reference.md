@@ -50,6 +50,37 @@ def rotated(dice, d):
 dice = rotated(dice, d)                # 받아야 함
 ```
 
+## 함수 안에서 바깥 변수 접근 (LEGB)
+함수가 인자로 안 받은 바깥 변수도 **읽기**는 그냥 됨 (LEGB 순서로 탐색: Local → Enclosing → Global → Built-in).
+
+```python
+gears = [deque(...) for _ in range(4)]   # 모듈 스코프
+
+def rotate_all(start, direction):
+    print(gears[0])         # ✅ 읽기 OK
+    gears[0].rotate(1)      # ✅ mutate OK (메서드 호출)
+    rot = [0] * 4           # ✅ 새 로컬 변수, 바깥과 무관
+```
+
+**단, 재할당은 `global` 선언 필요:**
+```python
+count = 0
+def bad():
+    count = count + 1   # UnboundLocalError
+    # 좌변 = 가 보이는 순간 count는 로컬로 분류됨
+    # 우변에서 읽으려는데 로컬에 아직 값 없음 → 에러
+def good():
+    global count
+    count += 1
+```
+
+**기본 방침: 명시적 파라미터.** 보드·그래프·visited 같은 큰 상태도 인자로 받고 결과는 return. 이유:
+- "이게 전역인지 인자인지" 매번 머리 굴리는 비용 > 시그니처 몇 글자 추가하는 비용
+- Python에선 객체 참조 전달이라 인자로 넘겨도 복사 비용 0
+- `main()`으로 감싸면 진짜 전역이 거의 없어짐 → 의도치 않은 상태 공유 사고 차단
+
+**예외 (전역 허용):** 깊은 재귀 DFS에서 인자 개수가 부담될 때, `sys.setrecursionlimit`과 함께 전역 `visited` 사용. 핫 루프 안에서 호출되는 헬퍼는 전역이 미세하게 빠를 수 있음.
+
 ## 함정
 - **`=` 대입은 수정이 아니라 재바인딩.** `lst = [...]` (함수 안) = 원본 안 바뀜.
 - **슬라이스 대입은 in-place.** `lst[:] = [...]`는 내용 교체라서 바깥 반영됨. 전체 교체할 땐 이 관용구 유용.

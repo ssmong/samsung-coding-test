@@ -13,27 +13,44 @@ NxN/NxM 격자 위에서 탐색·시뮬레이션하는 모든 문제. 세 가지
 
 ```python
 import sys
+from collections import deque
 input = sys.stdin.readline
 
-N = int(input())
+# 방향 벡터 (모듈 레벨 상수 — 어디서든 읽기 OK)
+# 4방향 (BFS/단순 탐색): 순서 무관
+DR = (-1, 1, 0, 0)
+DC = (0, 0, -1, 1)
 
-# 1. 인덱싱: 문제 지문이 1-based면 1-indexed로. 크기를 N+1로 잡고 0행/0열은 버림.
-board = [[0] * (N + 1) for _ in range(N + 1)]
+# 회전이 있는 시뮬레이션: 시계방향 순(우→하→좌→상)
+# 우회전 = (d + 1) % 4, 좌회전 = (d - 1) % 4
+# DR = (0, 1, 0, -1)
+# DC = (1, 0, -1, 0)
 
-# 2. 경계 체크: 명시적 if + in_range 헬퍼. sentinel wall은 특수 상황에만.
-def in_range(r, c):
-    return 1 <= r <= N and 1 <= c <= N
+def in_range(r, c, n):
+    """경계 체크. n은 격자 한 변 길이. 1-indexed 가정."""
+    return 1 <= r <= n and 1 <= c <= n
 
-# 3. 방향 벡터
-# - BFS/단순 4방향 탐색: 순서 무관
-dr = [-1, 1, 0, 0]
-dc = [0, 0, -1, 1]
+def solve(board, n):
+    # 여기서 BFS / DFS / 시뮬레이션 로직
+    ...
 
-# - 회전이 있는 시뮬레이션: 시계방향 순(우→하→좌→상)으로 배치
-#   우회전 = (d + 1) % 4, 좌회전 = (d - 1) % 4
-dr = [0, 1, 0, -1]
-dc = [1, 0, -1, 0]
+def main():
+    n = int(input())
+    # 1-based면 (n+1) x (n+1)로 잡고 0행/0열 버림
+    board = [[0] * (n + 1) for _ in range(n + 1)]
+    for i in range(1, n + 1):
+        board[i][1:] = list(map(int, input().split()))
+
+    result = solve(board, n)
+    print(result)
+
+main()
 ```
+
+**스타일 메모:**
+- `DR`, `DC`는 변하지 않는 상수라서 모듈 레벨 + 대문자. 함수 어디서든 읽어도 안전.
+- `n`, `board` 같은 데이터는 인자로 전달, 결과는 return.
+- 모든 로직을 `main()`으로 감싸면 진짜 전역은 import와 상수뿐.
 
 ### 방향 번호 ↔ 이동량 표 (회전 버전)
 

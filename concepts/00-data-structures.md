@@ -196,15 +196,19 @@ len(q), bool(q)
 ```python
 from collections import deque
 
-q = deque([start])
-visited[start] = True
-while q:
-    u = q.popleft()
-    for v in neighbors(u):
-        if not visited[v]:
-            visited[v] = True   # ← enqueue 시점에 표시 (popleft 시점 X)
-            q.append(v)
+def bfs(graph, start, n):
+    visited = [False] * (n + 1)
+    visited[start] = True
+    q = deque([start])
+    while q:
+        u = q.popleft()
+        for v in graph[u]:
+            if not visited[v]:
+                visited[v] = True   # ← enqueue 시점에 표시 (popleft 시점 X)
+                q.append(v)
+    return visited
 ```
+자세한 템플릿은 [02-bfs-dfs.md](02-bfs-dfs.md) 참고.
 
 ### 뱀 몸통 (3190) 관용구
 
