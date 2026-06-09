@@ -78,6 +78,38 @@ main()
 - **벽 처리.** 벽 좌표는 큐에 넣지 않고 확장 조건(`grid[nx][ny] == 0`)에서 걸러낸다. 답 검사 시에도 빈칸만 본다.
 - **N, M 순서.** 백준은 종종 `M N`을 입력으로 준다 (가로 세로). `range`와 인덱스에서 헷갈리지 말 것.
 - **튜플 vs 리스트.** `dx, dy`는 `tuple`이 미세하게 빠르다. 핫 루프에선 의미 있을 수 있음.
+- **상수 이름은 의미 단위로 분리.** `box`(원본)와 `dist`(거리 배열)에 같은 숫자(예: -1)가 등장해도 의미가 다르면 이름을 따로 두기:
+  ```python
+  RIPE, UNRIPE, WALL = 1, 0, -1   # box 값
+  UNVISITED = -1                  # dist 값 (BFS sentinel)
+  ```
+  안 그러면 `dist[i][j] == UNRIPE`(0)처럼 0의 의미가 충돌하는 사고 발생 (7576에서 실제로 발생).
+
+## 답 추출: 2D 격자에서 max + 도달 검사
+
+세 가지 패턴 비교:
+
+```python
+# A) 루프 안에서 통합 — 검사·필터·max를 함께 처리할 때 (최선)
+ans = 0
+for i in range(n):
+    for j in range(m):
+        if grid[i][j] == 0 and dist[i][j] == -1:
+            print(-1); return
+        if dist[i][j] > ans:
+            ans = dist[i][j]
+print(ans)
+
+# B) max(map(max, dist)) — 순수 max만 필요할 때 (가장 빠름)
+print(max(map(max, dist)))
+
+# C) max(v for row in dist for v in row if v >= 0) — 필터+max만 필요할 때
+```
+
+- **A**: 어차피 도달 검사로 모든 칸을 도는데 max도 같은 패스에서 갱신 → 단일 패스. 7576류는 무조건 A.
+- **B**: 검사가 없을 때만. C-level `map`이라 generator보다 빠름.
+- **C**: 단순 max라면 B보다 느림. 필터링이 필수일 때만.
+- 함정: **`max(dist)`만 쓰면 안 됨** — 2D 리스트는 행끼리 사전순 비교돼서 행이 통째로 반환된다.
 
 ## BFS 레벨 = 거리/시간
 

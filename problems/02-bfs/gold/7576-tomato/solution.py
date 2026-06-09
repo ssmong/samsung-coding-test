@@ -5,8 +5,10 @@ RIPE = 1
 UNRIPE = 0
 VACANT = -1
 
+UNVISITED = -1
+
 def bfs(grid, n, m):
-    dist = [[-1] * m for _ in range(n)]
+    dist = [[UNVISITED] * m for _ in range(n)]
     q = deque()
 
     for i in range(n):
@@ -23,8 +25,8 @@ def bfs(grid, n, m):
 
         for d in range(4):
             nx, ny = x + dx[d], y + dy[d]
-            if 0 <= nx < m and 0 <= ny < n:
-                if dist[nx][ny] == -1 and grid[nx][ny] == 0:
+            if 0 <= nx < n and 0 <= ny < m:
+                if dist[nx][ny] == UNVISITED and grid[nx][ny] == UNRIPE:
                     dist[nx][ny] = dist[x][y] + 1
                     q.append((nx, ny))
 
@@ -38,10 +40,14 @@ def main():
 
     dist = bfs(box, N, M)
 
+    ans = 0
     for i in range(N):
         for j in range(M):
-            if dist[i][j] == UNRIPE:
-                print("-1")
-                break
+            if box[i][j] == UNRIPE and dist[i][j] == UNVISITED:
+                print("-1"); return
+            ans = max(ans, dist[i][j])
     
-    print(max(dist))
+    print(ans)
+
+if __name__ == "__main__":
+    main()
